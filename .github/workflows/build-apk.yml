@@ -1,0 +1,47 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract Android project
+        shell: bash
+        run: |
+          set -e
+          ZIP="$(find . -maxdepth 1 -type f -name '*.zip' | head -n 1)"
+          test -n "$ZIP"
+          rm -rf build-src
+          mkdir build-src
+          unzip -q "$ZIP" -d build-src
+          test -f build-src/settings.gradle.kts
+
+      - name: Build APK
+        working-directory: build-src
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jay-mataji-truck-buy-sell-apk
+          path: build-src/app/build/outputs/apk/debug/app-debug.apk
